@@ -1,0 +1,1 @@
+from A2.__main__ import A2

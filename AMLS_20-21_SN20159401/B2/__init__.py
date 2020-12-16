@@ -1,0 +1,1 @@
+from B2.__main__ import B2
