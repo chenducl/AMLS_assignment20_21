@@ -1,19 +1,5 @@
-import pandas
-import os
-import numpy as np
-from matplotlib.pyplot import imread
-from sklearn.model_selection import train_test_split
-import cv2
-import dlib
-import torch as pt
-from torch.utils.data import TensorDataset, DataLoader
-import pandas as pd
-import sys
 
-from A1 import A1
-from A2 import A2
-from B1 import B1
-from B2 import B2
+import sys
 
 use_CNN = False
 if len(sys.argv) > 1:
@@ -22,9 +8,57 @@ if len(sys.argv) > 1:
     elif sys.argv[1] in ['CNN', 'cnn']:
         use_CNN = True
 
+print('use cnn model: ', use_CNN)
+import pandas
+import os
+import numpy as np
+from matplotlib.pyplot import imread
+from sklearn.model_selection import train_test_split
+import cv2
+import torch as pt
+from torch.utils.data import TensorDataset, DataLoader
+import pandas as pd
+
+from A1 import A1
+from A2 import A2
+from B1 import B1
+from B2 import B2
+
+
+if not use_CNN:
+    import dlib
+    
+    detector = dlib.get_frontal_face_detector()
+    predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
+
 size_batch, learning_rate = 40, 0.01
-detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
+
+
+      
+
+class GetLoader(pt.utils.data.Dataset):
+    # constructor
+    def __init__(self, path, field, is_test=False):
+        if path in ['cartoon_set', 'cartoon_set_test']:
+            self.file_label = 'file_name'
+        else:
+            self.file_label = 'img_name'
+        if not is_test:
+            self.path = os.path.join('Datasets', 'train', path)
+        else:
+            self.path = os.path.join('Datasets', 'test', path)
+        self.csv = pd.read_csv(os.path.join(self.path, 'labels.csv'), delimiter='\t')
+        self.field = field
+
+    def __getitem__(self, index):
+        img_path = os.path.join(self.path, 'img', self.csv[self.file_label][index])
+        img = imread(img_path)
+        img = np.moveaxis(img, 2, 0)
+        labels = self.csv[self.field][index]
+        return img, labels
+
+    def __len__(self):
+        return self.csv.shape[0]
 
 
 def shape_to_np(shape, dtype="int"):
@@ -92,6 +126,7 @@ def run_dlib_shape(image):
 
 
 def get_data(path, field, is_test=False):
+    reshape_img = False
     if path in ['cartoon_set', 'cartoon_set_test']:
         file_label = 'file_name'
         reshape_img = True
@@ -168,30 +203,6 @@ def get_data(path, field, is_test=False):
     return _X, _y
 
 
-class GetLoader(pt.utils.data.Dataset):
-    # constructor
-    def __init__(self, path, field, is_test=False):
-        if path in ['cartoon_set', 'cartoon_set_test']:
-            self.file_label = 'file_name'
-        else:
-            self.file_label = 'img_name'
-        if not is_test:
-            self.path = os.path.join('Datasets', 'train', path)
-        else:
-            self.path = os.path.join('Datasets', 'test', path)
-        self.csv = pd.read_csv(os.path.join(self.path, 'labels.csv'), delimiter='\t')
-        self.field = field
-
-    def __getitem__(self, index):
-        img_path = os.path.join(self.path, 'img', self.csv[self.file_label][index])
-        img = imread(img_path)
-        img = np.moveaxis(img, 2, 0)
-        labels = self.csv[self.field][index]
-        return img, labels
-
-    def __len__(self):
-        return self.csv.shape[0]
-
 
 def data_preprocessing(path, field, use_CNN=True):
     if path in ['celeba', 'celeba_test_set']:
@@ -227,7 +238,7 @@ def data_preprocessing(path, field, use_CNN=True):
 # data_train, data_val, data_test = data_preprocessing(args...)
 # ======================================================================================================================
 # Task A1
-train, val, test = data_preprocessing('celeba', 'gender')
+train, val, test = data_preprocessing('celeba', 'gender', use_CNN)
 model_A1 = A1(use_CNN)  # Build model object.
 acc_A1_train = model_A1.train(train, val)
 acc_A1_test = model_A1.test(test)
@@ -242,7 +253,7 @@ acc_A1_test = model_A1.test(test)
 # model_A2 = A2(args...)
 # acc_A2_train = model_A2.train(args...)
 # acc_A2_test = model_A2.test(args...)
-train, val, test = data_preprocessing('celeba', 'smiling')
+train, val, test = data_preprocessing('celeba', 'smiling', use_CNN)
 model_A2 = A2(use_CNN)  # Build model object.
 acc_A2_train = model_A2.train(train, val)
 acc_A2_test = model_A2.test(test)
@@ -255,7 +266,7 @@ acc_A2_test = model_A2.test(test)
 # acc_B1_train = model_B1.train(args...)
 # acc_B1_test = model_B1.test(args...)
 # Clean up memory/GPU etc...
-train, val, test = data_preprocessing('cartoon_set', 'face_shape')
+train, val, test = data_preprocessing('cartoon_set', 'face_shape', use_CNN)
 model_B1 = B1(use_CNN)  # Build model object.
 acc_B1_train = model_B1.train(train, val)
 acc_B1_test = model_B1.test(test)
@@ -265,7 +276,7 @@ acc_B1_test = model_B1.test(test)
 # model_B2 = B2(args...)
 # acc_B2_train = model_B2.train(args...)
 # acc_B2_test = model_B2.test(args...)
-train, val, test = data_preprocessing('cartoon_set', 'eye_color')
+train, val, test = data_preprocessing('cartoon_set', 'eye_color', use_CNN)
 model_B2 = B2(use_CNN)  # Build model object.
 acc_B2_train = model_B2.train(train, val)
 acc_B2_test = model_B2.test(test)
