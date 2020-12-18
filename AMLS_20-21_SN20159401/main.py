@@ -1,7 +1,7 @@
 
 import sys
 
-use_CNN = False
+use_CNN = True
 if len(sys.argv) > 1:
     if sys.argv[1] in ['svm', 'SVM']:
         use_CNN = False
