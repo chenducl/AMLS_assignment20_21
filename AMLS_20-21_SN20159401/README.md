@@ -10,6 +10,8 @@
 
 When you want to run the code, please unzip the training-set in the Datasets folder and name it `train`, and unzip the test-set in the Datasets folder and name it `test`.As shown in the directory tree below.
 
+**CUDA is necessary !!!!**
+
 
 
 ```
